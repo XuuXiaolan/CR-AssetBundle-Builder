@@ -1,11 +1,11 @@
 {
-    "name": "com.github.xuuxiaolan.crassetbundlebuilder",
+    "name": "com.github.xuuxiaolan.crassetbundlebuilder.Editor",
     "rootNamespace": "com.github.xuuxiaolan.crassetbundlebuilder ",
     "references": [],
-    "includePlatforms": [],
-    "excludePlatforms": [
+    "includePlatforms": [
         "Editor"
     ],
+    "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,
     "precompiledReferences": [],
