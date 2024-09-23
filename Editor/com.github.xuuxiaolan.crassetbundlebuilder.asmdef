@@ -1,6 +1,6 @@
 {
     "name": "com.github.xuuxiaolan.crassetbundlebuilder",
-    "rootNamespace": "com.github.xuuxiaolan.crassetbundlebuilder",
+    "rootNamespace": "",
     "references": [],
     "includePlatforms": [],
     "excludePlatforms": [
