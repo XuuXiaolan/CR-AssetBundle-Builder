@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 
@@ -17,140 +16,7 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
             OpenOnStartup();
         }
 
-        internal class BundleBuildSettings
-        {
-            public string BundleName { get; private set; }
-            public string DisplayName { get; private set; }
-
-            public bool FoldOutOpen { get; set; } = false;
-            public bool Build { get; set; } = false;
-            public bool Blacklisted { get; set; } = false;
-            public bool ChangedSinceLastBuild { get; set; } = true;
-
-            public long TotalSize { get; private set; } = 0;
-            public long LastBuildSize { get; set; } = 0;
-            public long BuiltBundleSize { get; private set; } = 0;
-
-            public bool AssetsFoldOut { get; set; } = false;
-
-            public List<AssetDetails> Assets { get; private set; } = new List<AssetDetails>();
-
-            internal BundleBuildSettings(string bundleName)
-            {
-                BundleName = bundleName;
-                DisplayName = ConvertToDisplayName(bundleName);
-
-                HashSet<string> processedAssets = new HashSet<string>();
-
-                foreach (string asset in AssetDatabase.GetAssetPathsFromAssetBundle(bundleName))
-                {
-                    ProcessAsset(asset, processedAssets);
-                }
-
-                FileInfo bundleFileInfo = new FileInfo(Path.Combine(CRBundleWindowSettings.Instance.buildOutputPath, bundleName));
-                if (bundleFileInfo.Exists)
-                    BuiltBundleSize = bundleFileInfo.Length;
-            }
-
-            private void ProcessAsset(string assetPath, HashSet<string> processedAssets)
-            {
-                if (processedAssets.Contains(assetPath))
-                    return;
-
-                // Exclude script files
-                if (assetPath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
-                {
-                    return;
-                }
-
-                FileInfo fileInfo = new FileInfo(assetPath);
-                if (!fileInfo.Exists) return;
-
-                long fileSize = fileInfo.Length;
-                TotalSize += fileSize;
-                Assets.Add(new AssetDetails { Path = assetPath, Size = fileSize });
-                processedAssets.Add(assetPath);
-
-                if (!CRBundleWindowSettings.Instance.processDependenciesRecursively)
-                    return;
-
-                UnityEngine.Object assetObject = AssetDatabase.LoadMainAssetAtPath(assetPath);
-                if (assetObject != null)
-                {
-                    try
-                    {
-                        foreach (string dependency in AssetDatabase.GetDependencies(assetPath))
-                        {
-                            if (!processedAssets.Contains(dependency) && dependency != assetPath)
-                            {
-                                ProcessAsset(dependency, processedAssets);
-                            }
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        Debug.LogError($"Error processing dependencies for {assetPath}: {e.Message}");
-                    }
-                }
-            }
-
-            internal class AssetDetails
-            {
-                public string Path { get; set; }
-                public long Size { get; set; }
-            }
-        }
-
-        [FilePath("Project/CRBundleWindowSettings.asset", FilePathAttribute.Location.PreferencesFolder)]
-        public class CRBundleWindowSettings : ScriptableSingleton<CRBundleWindowSettings>
-        {
-            public static CRBundleWindowSettings Instance => instance;
-
-            public string buildOutputPath;
-            public bool buildOnlyChanged;
-            public bool processDependenciesRecursively = false; // Default is false
-            public SortOption assetSortOption = SortOption.Size; // Default sorting by size
-
-            public void Save()
-            {
-                Save(true);
-            }
-        }
-
-        public enum SortOption
-        {
-            Alphabetical,
-            Size,
-            ReverseAlphabetical,
-            ReverseSize
-        }
-
-        static string ConvertToDisplayName(string bundleName)
-        {
-            return Regex.Replace(bundleName, "(\\B[A-Z])", " $1")
-                        .Replace("assets", " Assets")
-                        .Split(' ')
-                        .Select(word => char.ToUpper(word[0]) + word.Substring(1))
-                        .Aggregate((a, b) => a + " " + b);
-        }
-
-        static string GetReadableFileSize(long bytes)
-        {
-            if (bytes <= 0) return "N/A";
-
-            string[] suffixes = { "B", "KB", "MB", "GB" };
-            int i;
-            double doubleBytes = bytes;
-
-            for (i = 0; i < suffixes.Length && bytes >= 1024; i++, bytes /= 1024)
-            {
-                doubleBytes = bytes / 1024.0;
-            }
-
-            return string.Format("{0:0.##} {1}", doubleBytes, suffixes[i]);
-        }
-
-        internal static Dictionary<string, BundleBuildSettings> bundles = new();
+        internal static Dictionary<string, BundleBuildSettings> bundles = new Dictionary<string, BundleBuildSettings>();
 
         internal static bool logChangedFiles = false;
 
@@ -171,8 +37,8 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
         {
             GetWindow<CRBundleWindow>("CR Bundle Builder");
 
-            // Use the class name to call static methods
-            LoadSettings();  // Ensure settings are loaded if manually opened
+            // Ensure settings are loaded if manually opened
+            LoadSettings();
             CRBundleWindowSettings.Instance.Save();
             Refresh();
         }
@@ -316,9 +182,9 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
                     continue;
                 }
 
-                EditorGUILayout.LabelField("Total Size", GetReadableFileSize(bundle.TotalSize), new GUIStyle(boldLabelStyle) { normal = { textColor = BundleDataColor } });
-                EditorGUILayout.LabelField("Previous Total Size", GetReadableFileSize(bundle.LastBuildSize), new GUIStyle(boldLabelStyle) { normal = { textColor = BundleDataColor } });
-                EditorGUILayout.LabelField("Built Bundle Size", GetReadableFileSize(bundle.BuiltBundleSize), new GUIStyle(boldLabelStyle) { normal = { textColor = BundleDataColor } });
+                EditorGUILayout.LabelField("Total Size", Utils.GetReadableFileSize(bundle.TotalSize), new GUIStyle(boldLabelStyle) { normal = { textColor = BundleDataColor } });
+                EditorGUILayout.LabelField("Previous Total Size", Utils.GetReadableFileSize(bundle.LastBuildSize), new GUIStyle(boldLabelStyle) { normal = { textColor = BundleDataColor } });
+                EditorGUILayout.LabelField("Built Bundle Size", Utils.GetReadableFileSize(bundle.BuiltBundleSize), new GUIStyle(boldLabelStyle) { normal = { textColor = BundleDataColor } });
 
                 bool build = bundle.Build;
                 build = EditorGUILayout.Toggle("Build", build);
@@ -360,7 +226,7 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
                         }
                         EditorGUILayout.LabelField(Path.GetFileName(asset.Path), new GUIStyle(EditorStyles.label) { normal = { textColor = AssetColor } }, GUILayout.ExpandWidth(true));
                         Rect lastRect = GUILayoutUtility.GetLastRect();
-                        EditorGUILayout.LabelField(GetReadableFileSize(asset.Size), new GUIStyle(EditorStyles.label) { normal = { textColor = AssetColor } }, GUILayout.Width(150), GUILayout.ExpandWidth(false));
+                        EditorGUILayout.LabelField(Utils.GetReadableFileSize(asset.Size), new GUIStyle(EditorStyles.label) { normal = { textColor = AssetColor } }, GUILayout.Width(150), GUILayout.ExpandWidth(false));
                         EditorGUILayout.EndHorizontal();
 
                         EditorGUIUtility.AddCursorRect(lastRect, MouseCursor.Link); // Change cursor to link cursor

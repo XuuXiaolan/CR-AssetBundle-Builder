@@ -68,7 +68,7 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
             try
             {
                 string bundle = AssetDatabase.GetImplicitAssetBundleName(assetPath);
-                if (!string.IsNullOrEmpty(bundle) && CRBundleWindow.bundles.TryGetValue(bundle, out CRBundleWindow.BundleBuildSettings settings))
+                if (!string.IsNullOrEmpty(bundle) && CRBundleWindow.bundles.TryGetValue(bundle, out BundleBuildSettings settings))
                 {
                     if (CRBundleWindow.logChangedFiles)
                     {
