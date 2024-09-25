@@ -10,7 +10,6 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
     [InitializeOnLoad]
     public class CRBundleWindow : EditorWindow
     {
-        // Static constructor is called when Unity loads, including on startup
         static CRBundleWindow()
         {
             OpenOnStartup();
@@ -22,9 +21,9 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
 
         private SortOption _assetSortOption => CRBundleWindowSettings.Instance.assetSortOption;
 
-        Vector2 scrollPosition;
+        private Vector2 scrollPosition;
 
-        void OnEnable()
+        private void OnEnable()
         {
             Debug.Log("OnEnable called");
             LoadSettings();
@@ -33,7 +32,7 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
         }
 
         [MenuItem("Code Rebirth/Bundle Builder")]
-        static void Open()
+        public static void Open()
         {
             GetWindow<CRBundleWindow>("CR Bundle Builder");
 
@@ -43,7 +42,7 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
             Refresh();
         }
 
-        static void OpenOnStartup()
+        private static void OpenOnStartup()
         {
             // Ensures that the window opens when Unity starts
             EditorApplication.delayCall += () =>
@@ -52,12 +51,10 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
             };
         }
 
-        static void LoadSettings()
+        private static void LoadSettings()
         {
             Debug.Log("LoadSettings called");
             var settings = CRBundleWindowSettings.Instance;
-
-            settings.buildOutputPath = EditorPrefs.GetString("build_output", settings.buildOutputPath);
 
             if (string.IsNullOrEmpty(settings.buildOutputPath))
             {
@@ -76,7 +73,7 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
                 {
                     Debug.LogWarning("Could not find 'AssetBundles' directory. Please set the build output path manually.");
                     // Optionally, set a default path or prompt the user to select one
-                    settings.buildOutputPath = Application.dataPath; // Default to the Assets folder
+                    settings.buildOutputPath = "Assets/AssetBundles"; // Default to the Assets/AssetBundles folder
                     SaveBuildOutputPath(settings.buildOutputPath);
                 }
             }
@@ -86,7 +83,7 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
             settings.processDependenciesRecursively = EditorPrefs.GetBool("process_dependencies_recursively", settings.processDependenciesRecursively);
         }
 
-        static void SaveBuildOutputPath(string path)
+        private static void SaveBuildOutputPath(string path)
         {
             if (!string.IsNullOrEmpty(path))
             {
@@ -97,7 +94,7 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
             }
         }
 
-        static void Refresh()
+        private static void Refresh()
         {
             Debug.Log("Refreshing bundler.");
 
@@ -115,7 +112,7 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
             }
         }
 
-        void OnGUI()
+        private void OnGUI()
         {
             Color FolderColor = new Color(0.8f, 0.8f, 1f, 1f);
             Color BundleDataColor = new Color(0.8f, 1f, 0.8f, 1f);
@@ -312,7 +309,7 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
             }
         }
 
-        void SortAssets(List<BundleBuildSettings.AssetDetails> assets)
+        private void SortAssets(List<AssetDetails> assets)
         {
             switch (_assetSortOption)
             {
@@ -349,7 +346,7 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
             }
         }
 
-        void BuildBundlesOnMainThread()
+        private void BuildBundlesOnMainThread()
         {
             EditorApplication.update -= BuildBundlesOnMainThread;
 
@@ -389,7 +386,7 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
                         CRBundleWindowSettings.Instance.buildOutputPath,
                         new AssetBundleBuild[] { build },
                         BuildAssetBundleOptions.None,
-                        BuildTarget.StandaloneWindows
+                        EditorUserBuildSettings.activeBuildTarget
                     );
 
                     // Mark the bundle as built
@@ -438,7 +435,7 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
             }
         }
 
-        void DeleteIfExists(string path)
+        private void DeleteIfExists(string path)
         {
             if (File.Exists(path))
             {
@@ -446,7 +443,7 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
             }
         }
 
-        void ClearConsole()
+        private void ClearConsole()
         {
             var logEntries = System.Type.GetType("UnityEditor.LogEntries,UnityEditor.dll");
             var clearMethod = logEntries.GetMethod("Clear", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);

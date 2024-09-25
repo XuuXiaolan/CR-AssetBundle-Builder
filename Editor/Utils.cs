@@ -8,6 +8,9 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
     {
         public static string ConvertToDisplayName(string bundleName)
         {
+            if (string.IsNullOrEmpty(bundleName))
+                return "Unnamed Bundle";
+
             return Regex.Replace(bundleName, "(\\B[A-Z])", " $1")
                         .Replace("assets", " Assets")
                         .Split(' ')
@@ -17,18 +20,12 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
 
         public static string GetReadableFileSize(long bytes)
         {
-            if (bytes <= 0) return "N/A";
+            if (bytes <= 0) return "0 B";
 
-            string[] suffixes = { "B", "KB", "MB", "GB" };
-            int i;
-            double doubleBytes = bytes;
-
-            for (i = 0; i < suffixes.Length && bytes >= 1024; i++, bytes /= 1024)
-            {
-                doubleBytes = bytes / 1024.0;
-            }
-
-            return string.Format("{0:0.##} {1}", doubleBytes, suffixes[i]);
+            string[] suffixes = { "B", "KB", "MB", "GB", "TB" };
+            int i = (int)Math.Floor(Math.Log(bytes, 1024));
+            double size = bytes / Math.Pow(1024, i);
+            return $"{size:0.##} {suffixes[i]}";
         }
     }
 }

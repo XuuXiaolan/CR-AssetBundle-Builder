@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -24,69 +25,89 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
 
         public List<AssetDetails> Assets { get; private set; } = new List<AssetDetails>();
 
-        internal BundleBuildSettings(string bundleName)
+        public BundleBuildSettings(string bundleName)
         {
             BundleName = bundleName;
             DisplayName = Utils.ConvertToDisplayName(bundleName);
 
-            HashSet<string> processedAssets = new HashSet<string>();
+            LoadBundleData();
+        }
 
-            foreach (string asset in AssetDatabase.GetAssetPathsFromAssetBundle(bundleName))
+        private void LoadBundleData()
+        {
+            HashSet<string> processedAssets = new HashSet<string>();
+            string[] assetPaths = AssetDatabase.GetAssetPathsFromAssetBundle(BundleName);
+
+            foreach (string assetPath in assetPaths)
             {
-                ProcessAsset(asset, processedAssets);
+                ProcessAsset(assetPath, processedAssets);
             }
 
-            FileInfo bundleFileInfo = new FileInfo(Path.Combine(CRBundleWindowSettings.Instance.buildOutputPath, bundleName));
-            if (bundleFileInfo.Exists)
-                BuiltBundleSize = bundleFileInfo.Length;
+            string bundlePath = Path.Combine(CRBundleWindowSettings.Instance.buildOutputPath, BundleName);
+            if (File.Exists(bundlePath))
+            {
+                BuiltBundleSize = new FileInfo(bundlePath).Length;
+            }
         }
 
         private void ProcessAsset(string assetPath, HashSet<string> processedAssets)
         {
-            if (processedAssets.Contains(assetPath))
+            if (processedAssets.Contains(assetPath) || assetPath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
                 return;
 
-            // Exclude script files
-            if (assetPath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
+            long fileSize = GetFileSize(assetPath);
+            if (fileSize >= 0)
             {
-                return;
+                TotalSize += fileSize;
+                Assets.Add(new AssetDetails { Path = assetPath, Size = fileSize });
+                processedAssets.Add(assetPath);
             }
-
-            FileInfo fileInfo = new FileInfo(assetPath);
-            if (!fileInfo.Exists) return;
-
-            long fileSize = fileInfo.Length;
-            TotalSize += fileSize;
-            Assets.Add(new AssetDetails { Path = assetPath, Size = fileSize });
-            processedAssets.Add(assetPath);
 
             if (!CRBundleWindowSettings.Instance.processDependenciesRecursively)
                 return;
 
-            UnityEngine.Object assetObject = AssetDatabase.LoadMainAssetAtPath(assetPath);
-            if (assetObject != null)
+            try
             {
-                try
+                string[] dependencies = AssetDatabase.GetDependencies(assetPath, true);
+                foreach (string dependency in dependencies)
                 {
-                    foreach (string dependency in AssetDatabase.GetDependencies(assetPath))
+                    if (!processedAssets.Contains(dependency) && dependency != assetPath)
                     {
-                        if (!processedAssets.Contains(dependency) && dependency != assetPath)
-                        {
-                            ProcessAsset(dependency, processedAssets);
-                        }
+                        ProcessAsset(dependency, processedAssets);
                     }
                 }
-                catch (Exception e)
-                {
-                    Debug.LogError($"Error processing dependencies for {assetPath}: {e.Message}");
-                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Error processing dependencies for {assetPath}: {e.Message}");
             }
         }
 
-        internal class AssetDetails
+        private long GetFileSize(string assetPath)
         {
-            public string Path { get; set; }
-            public long Size { get; set; }
+            string fullPath = Path.Combine(Application.dataPath.Replace("Assets", ""), assetPath);
+            if (File.Exists(fullPath))
+            {
+                return new FileInfo(fullPath).Length;
+            }
+            return -1;
         }
+
+        public bool ShouldBuild()
+        {
+            if (Blacklisted)
+                return false;
+
+            if (CRBundleWindowSettings.Instance.buildOnlyChanged && !ChangedSinceLastBuild)
+                return false;
+
+            return Build;
+        }
+    }
+
+    internal class AssetDetails
+    {
+        public string Path { get; set; }
+        public long Size { get; set; }
     }
 }

@@ -2,19 +2,24 @@ using UnityEditor;
 
 namespace com.github.xuuxiaolan.crassetbundlebuilder
 {
-    [FilePath("Project/CRBundleWindowSettings.asset", FilePathAttribute.Location.PreferencesFolder)]
+    [FilePath("ProjectSettings/CRBundleWindowSettings.asset", FilePathAttribute.Location.ProjectFolder)]
     public class CRBundleWindowSettings : ScriptableSingleton<CRBundleWindowSettings>
     {
         public static CRBundleWindowSettings Instance => instance;
 
-        public string buildOutputPath;
-        public bool buildOnlyChanged;
-        public bool processDependenciesRecursively = false; // Default is false
-        public SortOption assetSortOption = SortOption.Size; // Default sorting by size
+        public string buildOutputPath = "Assets/AssetBundles";
+        public bool buildOnlyChanged = false;
+        public bool processDependenciesRecursively = false;
+        public SortOption assetSortOption = SortOption.Size;
 
         public void Save()
         {
             Save(true);
+        }
+
+        public void Load()
+        {
+            // Implement any necessary loading logic here if needed
         }
     }
 }
