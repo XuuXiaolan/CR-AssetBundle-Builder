@@ -1,4 +1,8 @@
-# 1.1.2
+# 1.2.0
+
+- Improved code.
+
+## 1.1.2
 
 - Separated classes etc into separate files for modularity and maintainability.
 
