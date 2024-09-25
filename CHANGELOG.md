@@ -1,4 +1,8 @@
-# 1.2.0
+# 1.2.1
+
+- Added compat with normal asset bundle builder in the filepath selection.
+
+## 1.2.0
 
 - Improved code.
 

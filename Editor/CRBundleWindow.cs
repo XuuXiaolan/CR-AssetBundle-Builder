@@ -71,9 +71,17 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
                 }
                 else
                 {
-                    Debug.LogWarning("Could not find 'AssetBundles' directory. Please set the build output path manually.");
-                    // Optionally, set a default path or prompt the user to select one
-                    settings.buildOutputPath = "Assets/AssetBundles"; // Default to the Assets/AssetBundles folder
+                    Debug.LogWarning("Could not find 'AssetBundles' directory. Setting default build output path to 'Assets/AssetBundles/StandaloneWindows'.");
+                    // Construct the absolute path to 'Assets/AssetBundles/StandaloneWindows'
+                    string defaultAbsolutePath = Path.Combine(Application.dataPath, "AssetBundles", "StandaloneWindows");
+
+                    // Ensure the directory exists
+                    if (!Directory.Exists(defaultAbsolutePath))
+                    {
+                        Directory.CreateDirectory(defaultAbsolutePath);
+                    }
+
+                    settings.buildOutputPath = defaultAbsolutePath;
                     SaveBuildOutputPath(settings.buildOutputPath);
                 }
             }
