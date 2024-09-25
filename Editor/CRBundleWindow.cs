@@ -52,47 +52,47 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
                     BuiltBundleSize = bundleFileInfo.Length;
             }
 
-        private void ProcessAsset(string assetPath, HashSet<string> processedAssets)
-        {
-            if (processedAssets.Contains(assetPath))
-                return;
-
-            // Exclude script files
-            if (assetPath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
+            private void ProcessAsset(string assetPath, HashSet<string> processedAssets)
             {
-                return;
-            }
+                if (processedAssets.Contains(assetPath))
+                    return;
 
-            FileInfo fileInfo = new FileInfo(assetPath);
-            if (!fileInfo.Exists) return;
-
-            long fileSize = fileInfo.Length;
-            TotalSize += fileSize;
-            Assets.Add(new AssetDetails { Path = assetPath, Size = fileSize });
-            processedAssets.Add(assetPath);
-
-            if (!CRBundleWindowSettings.Instance.processDependenciesRecursively)
-                return;
-
-            UnityEngine.Object assetObject = AssetDatabase.LoadMainAssetAtPath(assetPath);
-            if (assetObject != null)
-            {
-                try
+                // Exclude script files
+                if (assetPath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
                 {
-                    foreach (string dependency in AssetDatabase.GetDependencies(assetPath))
+                    return;
+                }
+
+                FileInfo fileInfo = new FileInfo(assetPath);
+                if (!fileInfo.Exists) return;
+
+                long fileSize = fileInfo.Length;
+                TotalSize += fileSize;
+                Assets.Add(new AssetDetails { Path = assetPath, Size = fileSize });
+                processedAssets.Add(assetPath);
+
+                if (!CRBundleWindowSettings.Instance.processDependenciesRecursively)
+                    return;
+
+                UnityEngine.Object assetObject = AssetDatabase.LoadMainAssetAtPath(assetPath);
+                if (assetObject != null)
+                {
+                    try
                     {
-                        if (!processedAssets.Contains(dependency) && dependency != assetPath)
+                        foreach (string dependency in AssetDatabase.GetDependencies(assetPath))
                         {
-                            ProcessAsset(dependency, processedAssets);
+                            if (!processedAssets.Contains(dependency) && dependency != assetPath)
+                            {
+                                ProcessAsset(dependency, processedAssets);
+                            }
                         }
                     }
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError($"Error processing dependencies for {assetPath}: {e.Message}");
+                    catch (Exception e)
+                    {
+                        Debug.LogError($"Error processing dependencies for {assetPath}: {e.Message}");
+                    }
                 }
             }
-        }
 
             internal class AssetDetails
             {
@@ -169,12 +169,12 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
         [MenuItem("Code Rebirth/Bundle Builder")]
         static void Open()
         {
-            var window = GetWindow<CRBundleWindow>("CR Bundle Builder");
-            
+            GetWindow<CRBundleWindow>("CR Bundle Builder");
+
             // Use the class name to call static methods
-            CRBundleWindow.LoadSettings();  // Ensure settings are loaded if manually opened
+            LoadSettings();  // Ensure settings are loaded if manually opened
             CRBundleWindowSettings.Instance.Save();
-            CRBundleWindow.Refresh();
+            Refresh();
         }
 
         static void OpenOnStartup()
@@ -520,9 +520,9 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
 
                     Debug.Log($"Building AssetBundle: {bundle.BundleName}");
                     BuildPipeline.BuildAssetBundles(
-                        CRBundleWindowSettings.Instance.buildOutputPath, 
-                        new AssetBundleBuild[] { build }, 
-                        BuildAssetBundleOptions.None, 
+                        CRBundleWindowSettings.Instance.buildOutputPath,
+                        new AssetBundleBuild[] { build },
+                        BuildAssetBundleOptions.None,
                         BuildTarget.StandaloneWindows
                     );
 
@@ -557,14 +557,11 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
                     }
                 }
 
-                // Optionally, handle manifest files differently if they are needed elsewhere
-                if (!NeedToKeepManifests())
+                // Remove manifest files if not needed
+                foreach (string file in Directory.GetFiles(CRBundleWindowSettings.Instance.buildOutputPath, "*.manifest", SearchOption.TopDirectoryOnly))
                 {
-                    foreach (string file in Directory.GetFiles(CRBundleWindowSettings.Instance.buildOutputPath, "*.manifest", SearchOption.TopDirectoryOnly))
-                    {
-                        DeleteIfExists(file);
-                        DeleteIfExists(file + ".meta");
-                    }
+                    DeleteIfExists(file);
+                    DeleteIfExists(file + ".meta");
                 }
 
                 Debug.Log("Build completed and cleanup done.");
@@ -588,12 +585,6 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
             var logEntries = System.Type.GetType("UnityEditor.LogEntries,UnityEditor.dll");
             var clearMethod = logEntries.GetMethod("Clear", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
             clearMethod.Invoke(null, null);
-        }
-
-        bool NeedToKeepManifests()
-        {
-            // Implement logic to determine if manifests need to be kept
-            return true; // Placeholder: modify based on your requirements
         }
     }
 }
