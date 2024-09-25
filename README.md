@@ -12,6 +12,4 @@ Shared due to usefulness for other modders and is now used in the official Examp
 
 ## Todo
 
-- Change the default Output directory to something more reasonable than my output directory lol.
 - Improve UI.
-- Change the name to be more standardified than `CodeRebirth`.

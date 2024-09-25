@@ -195,9 +195,24 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
 
             if (string.IsNullOrEmpty(settings.buildOutputPath))
             {
-                Debug.Log("Having to use default build output path.");
-                settings.buildOutputPath = "F:/Ammar Stuff/ModdingProject/CodeRebirthStuff/CodeRebirth/CodeRebirth/CodeRebirthUnityProject/Assets/LethalCompany/Mods/plugins/CodeRebirth/AssetBundles";
-                SaveBuildOutputPath(settings.buildOutputPath);
+                Debug.Log("Searching for 'AssetBundles' directory.");
+
+                // Search for 'AssetBundles' directory within the 'Assets' folder
+                string[] assetBundlesDirs = Directory.GetDirectories(Application.dataPath, "AssetBundles", SearchOption.AllDirectories);
+
+                if (assetBundlesDirs.Length > 0)
+                {
+                    settings.buildOutputPath = assetBundlesDirs[0];
+                    SaveBuildOutputPath(settings.buildOutputPath);
+                    Debug.Log($"Found 'AssetBundles' directory at: {settings.buildOutputPath}");
+                }
+                else
+                {
+                    Debug.LogWarning("Could not find 'AssetBundles' directory. Please set the build output path manually.");
+                    // Optionally, set a default path or prompt the user to select one
+                    settings.buildOutputPath = Application.dataPath; // Default to the Assets folder
+                    SaveBuildOutputPath(settings.buildOutputPath);
+                }
             }
 
             settings.buildOnlyChanged = EditorPrefs.GetBool("build_changed", settings.buildOnlyChanged);
