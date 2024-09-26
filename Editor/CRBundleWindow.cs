@@ -126,33 +126,38 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
             Color BundleDataColor = new Color(0.8f, 1f, 0.8f, 1f);
             Color AssetColor = new Color(1f, 0.8f, 0.8f, 1f);
 
+            // Scale factor to increase sizes
+            float scaleFactor = 1.1f;
+
             GUIStyle headerStyle = new GUIStyle(GUI.skin.label)
             {
                 fontStyle = FontStyle.Bold,
-                fontSize = 14
+                fontSize = Mathf.RoundToInt(14 * scaleFactor)
             };
 
             GUIStyle boldLabelStyle = new GUIStyle(GUI.skin.label)
             {
-                fontStyle = FontStyle.Bold
+                fontStyle = FontStyle.Bold,
+                fontSize = Mathf.RoundToInt(12 * scaleFactor)
             };
 
             GUIStyle assetFoldoutStyle = new GUIStyle(EditorStyles.foldout)
             {
-                fontStyle = FontStyle.Bold
+                fontStyle = FontStyle.Bold,
+                fontSize = Mathf.RoundToInt(12 * scaleFactor)
             };
 
-            if (GUILayout.Button("Refresh"))
+            if (GUILayout.Button("Refresh", GUILayout.Height(20 * scaleFactor)))
             {
                 Refresh();
             }
 
             var settings = CRBundleWindowSettings.Instance;
 
-            settings.assetSortOption = (SortOption)EditorGUILayout.EnumPopup("Sort Assets By:", settings.assetSortOption);
+            settings.assetSortOption = (SortOption)EditorGUILayout.EnumPopup("Sort Assets By:", settings.assetSortOption, GUILayout.Height(20 * scaleFactor));
             EditorPrefs.SetInt("asset_sort_option", (int)settings.assetSortOption);
 
-            settings.processDependenciesRecursively = EditorGUILayout.Toggle("Process Dependencies Recursively", settings.processDependenciesRecursively);
+            settings.processDependenciesRecursively = EditorGUILayout.Toggle("Process Dependencies Recursively", settings.processDependenciesRecursively, GUILayout.Height(20 * scaleFactor));
             EditorPrefs.SetBool("process_dependencies_recursively", settings.processDependenciesRecursively);
 
             settings.Save();
@@ -171,13 +176,14 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
                 EditorGUILayout.BeginHorizontal();
 
                 // Define constants for widths and spacing
-                float foldoutWidth = 15f;
-                float iconWidth = 20f;
-                float toggleWidth = 70f;
-                float spacing = 2f;
+                float foldoutWidth = 15f * scaleFactor;
+                float iconWidth = 20f * scaleFactor;
+                float toggleWidth = 80f * scaleFactor;
+                float spacing = 5f * scaleFactor;
+                float lineHeight = (EditorGUIUtility.singleLineHeight + 5f) * scaleFactor;
 
                 // Get the rect for the entire line
-                Rect lastRect = GUILayoutUtility.GetRect(0, EditorGUIUtility.singleLineHeight);
+                Rect lastRect = GUILayoutUtility.GetRect(0, lineHeight);
 
                 // Calculate the total width available for label and toggles
                 float totalWidth = lastRect.width;
@@ -185,35 +191,32 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
                 // Calculate positions for each element
 
                 // Foldout Rect
-                Rect foldoutRect = new Rect(lastRect.x, lastRect.y, foldoutWidth, lastRect.height);
+                Rect foldoutRect = new Rect(lastRect.x + 5f, lastRect.y + 2f, foldoutWidth, lastRect.height);
 
                 // Icon Rect
-                Rect iconRect = new Rect(foldoutRect.xMax + spacing, lastRect.y, iconWidth, lastRect.height);
+                Rect iconRect = new Rect(foldoutRect.xMax + spacing, lastRect.y + 2f, iconWidth, lastRect.height);
 
                 // Available width after foldout and icon
-                float remainingWidth = totalWidth - (foldoutWidth + iconWidth + spacing * 2);
-
-                // Let's define the total width for the toggles
-                float togglesTotalWidth = toggleWidth * 2 + spacing; // two toggles and spacing between them
+                float remainingWidth = totalWidth - (foldoutWidth + iconWidth + toggleWidth * 2 + spacing * 5);
 
                 // Label Rect - occupy the remaining space minus the toggles
                 Rect labelRect = new Rect(
                     iconRect.xMax + spacing,
-                    lastRect.y,
-                    remainingWidth - togglesTotalWidth - spacing, // subtract toggles width and additional spacing
+                    lastRect.y + 2f,
+                    remainingWidth,
                     lastRect.height);
 
                 // Build Toggle Rect - position it at the right end
                 Rect buildToggleRect = new Rect(
-                    lastRect.xMax - togglesTotalWidth + spacing, // position from the right
-                    lastRect.y,
+                    labelRect.xMax + spacing,
+                    lastRect.y + 2f,
                     toggleWidth,
                     lastRect.height);
 
                 // Blacklist Toggle Rect - position to the right of Build Toggle
                 Rect blacklistToggleRect = new Rect(
                     buildToggleRect.xMax + spacing,
-                    lastRect.y,
+                    lastRect.y + 2f,
                     toggleWidth,
                     lastRect.height);
 
@@ -222,7 +225,7 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
 
                 // Draw the icon
                 Texture2D bundleIcon = EditorGUIUtility.IconContent("d_Folder Icon").image as Texture2D;
-                GUI.DrawTexture(iconRect, bundleIcon);
+                GUI.DrawTexture(iconRect, bundleIcon, ScaleMode.ScaleToFit);
 
                 // Draw the label
                 EditorGUI.LabelField(labelRect, $"{prefix}{bundle.DisplayName}", new GUIStyle(headerStyle) { normal = { textColor = FolderColor } });
@@ -296,11 +299,11 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
                         Texture2D icon = AssetDatabase.GetCachedIcon(asset.Path) as Texture2D;
                         if (icon != null)
                         {
-                            GUILayout.Label(icon, GUILayout.Width(24), GUILayout.Height(24), GUILayout.ExpandWidth(false));
+                            GUILayout.Label(icon, GUILayout.Width(24f * scaleFactor), GUILayout.Height(24f * scaleFactor), GUILayout.ExpandWidth(false));
                         }
-                        EditorGUILayout.LabelField(Path.GetFileName(asset.Path), new GUIStyle(EditorStyles.label) { normal = { textColor = AssetColor } }, GUILayout.ExpandWidth(true));
+                        EditorGUILayout.LabelField(Path.GetFileName(asset.Path), new GUIStyle(EditorStyles.label) { fontSize = Mathf.RoundToInt(12 * scaleFactor), normal = { textColor = AssetColor } }, GUILayout.ExpandWidth(true));
                         Rect assetRect = GUILayoutUtility.GetLastRect();
-                        EditorGUILayout.LabelField(Utils.GetReadableFileSize(asset.Size), new GUIStyle(EditorStyles.label) { normal = { textColor = AssetColor } }, GUILayout.Width(150), GUILayout.ExpandWidth(false));
+                        EditorGUILayout.LabelField(Utils.GetReadableFileSize(asset.Size), new GUIStyle(EditorStyles.label) { fontSize = Mathf.RoundToInt(12 * scaleFactor), normal = { textColor = AssetColor } }, GUILayout.Width(150f * scaleFactor), GUILayout.ExpandWidth(false));
                         EditorGUILayout.EndHorizontal();
 
                         EditorGUIUtility.AddCursorRect(assetRect, MouseCursor.Link);
