@@ -163,60 +163,73 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
             {
                 string prefix = bundle.ChangedSinceLastBuild ? "(*) " : "";
 
+                // Reset indent level
+                int originalIndentLevel = EditorGUI.indentLevel;
                 EditorGUI.indentLevel = 0;
-                Rect foldoutRect = GUILayoutUtility.GetRect(20f, 25f, GUILayout.ExpandWidth(true)); // Increased height for better spacing
-                bundle.FoldOutOpen = EditorGUI.Foldout(foldoutRect, bundle.FoldOutOpen, "", true, headerStyle);
 
-                // Adding a custom icon for asset bundles
+                // Begin a horizontal group for the bundle header
+                EditorGUILayout.BeginHorizontal();
+
+                // Define constants for widths and spacing
+                float foldoutWidth = 15f;
+                float iconWidth = 20f;
+                float toggleWidth = 70f;
+                float spacing = 2f;
+
+                // Get the rect for the entire line
+                Rect lastRect = GUILayoutUtility.GetRect(0, EditorGUIUtility.singleLineHeight);
+
+                // Calculate the total width available for label and toggles
+                float totalWidth = lastRect.width;
+
+                // Calculate positions for each element
+
+                // Foldout Rect
+                Rect foldoutRect = new Rect(lastRect.x, lastRect.y, foldoutWidth, lastRect.height);
+
+                // Icon Rect
+                Rect iconRect = new Rect(foldoutRect.xMax + spacing, lastRect.y, iconWidth, lastRect.height);
+
+                // Available width after foldout and icon
+                float remainingWidth = totalWidth - (foldoutWidth + iconWidth + spacing * 2);
+
+                // Let's define the total width for the toggles
+                float togglesTotalWidth = toggleWidth * 2 + spacing; // two toggles and spacing between them
+
+                // Label Rect - occupy the remaining space minus the toggles
+                Rect labelRect = new Rect(
+                    iconRect.xMax + spacing,
+                    lastRect.y,
+                    remainingWidth - togglesTotalWidth - spacing, // subtract toggles width and additional spacing
+                    lastRect.height);
+
+                // Build Toggle Rect - position it at the right end
+                Rect buildToggleRect = new Rect(
+                    lastRect.xMax - togglesTotalWidth + spacing, // position from the right
+                    lastRect.y,
+                    toggleWidth,
+                    lastRect.height);
+
+                // Blacklist Toggle Rect - position to the right of Build Toggle
+                Rect blacklistToggleRect = new Rect(
+                    buildToggleRect.xMax + spacing,
+                    lastRect.y,
+                    toggleWidth,
+                    lastRect.height);
+
+                // Draw the foldout
+                bundle.FoldOutOpen = EditorGUI.Foldout(foldoutRect, bundle.FoldOutOpen, "", true);
+
+                // Draw the icon
                 Texture2D bundleIcon = EditorGUIUtility.IconContent("d_Folder Icon").image as Texture2D;
-                Rect iconRect = new Rect(foldoutRect.x + 15, foldoutRect.y + 3, 20, 20); // Lower the icon positioning
                 GUI.DrawTexture(iconRect, bundleIcon);
 
-                // Define constants for toggle widths and spacing
-                float toggleWidth = 80f;
-
-                // Define positions for toggles at the right side
-                Rect BlacklistToggleRect = new Rect(
-                    foldoutRect.xMax - toggleWidth,
-                    foldoutRect.y + 2f,
-                    toggleWidth,
-                    foldoutRect.height - 4f
-                );
-
-                Rect BuildToggleRect = new Rect(
-                    BlacklistToggleRect.x - toggleWidth,
-                    foldoutRect.y + 2f,
-                    toggleWidth,
-                    foldoutRect.height - 4f);
-
-                // Adjust labelRect to fit between icon and toggles
-                Rect labelRect = new Rect(
-                    iconRect.xMax + 5,
-                    foldoutRect.y,
-                    BuildToggleRect.x - (iconRect.xMax + 5),
-                    foldoutRect.height);
-
+                // Draw the label
                 EditorGUI.LabelField(labelRect, $"{prefix}{bundle.DisplayName}", new GUIStyle(headerStyle) { normal = { textColor = FolderColor } });
-
-                // Draw the Blacklist toggle
-                bool blacklisted = bundle.Blacklisted;
-                bool newBlacklisted = EditorGUI.ToggleLeft(BlacklistToggleRect, "Blacklist", blacklisted);
-                if (newBlacklisted != blacklisted)
-                {
-                    bundle.Blacklisted = newBlacklisted;
-                    EditorPrefs.SetBool($"{bundle.BundleName}_blacklisted", newBlacklisted);
-
-                    if (newBlacklisted)
-                    {
-                        // Untoggle Build
-                        bundle.Build = false;
-                        EditorPrefs.SetBool($"{bundle.BundleName}_build", false);
-                    }
-                }
 
                 // Draw the Build toggle
                 bool build = bundle.Build;
-                bool newBuild = EditorGUI.ToggleLeft(BuildToggleRect, "Build", build);
+                bool newBuild = EditorGUI.ToggleLeft(buildToggleRect, "Build", build);
                 if (newBuild != build)
                 {
                     bundle.Build = newBuild;
@@ -230,30 +243,48 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
                     }
                 }
 
-                if (Event.current.type == EventType.MouseDown && foldoutRect.Contains(Event.current.mousePosition))
+                // Draw the Blacklist toggle
+                bool blacklisted = bundle.Blacklisted;
+                bool newBlacklisted = EditorGUI.ToggleLeft(blacklistToggleRect, "Blacklist", blacklisted);
+                if (newBlacklisted != blacklisted)
                 {
-                    bundle.FoldOutOpen = !bundle.FoldOutOpen;
-                    Event.current.Use();
+                    bundle.Blacklisted = newBlacklisted;
+                    EditorPrefs.SetBool($"{bundle.BundleName}_blacklisted", newBlacklisted);
+
+                    if (newBlacklisted)
+                    {
+                        // Untoggle Build
+                        bundle.Build = false;
+                        EditorPrefs.SetBool($"{bundle.BundleName}_build", false);
+                    }
+                }
+
+                EditorGUILayout.EndHorizontal();
+
+                // Handle foldout click outside toggles
+                if (Event.current.type == EventType.MouseDown && lastRect.Contains(Event.current.mousePosition))
+                {
+                    // Check if the click is not in the toggles
+                    if (!buildToggleRect.Contains(Event.current.mousePosition) && !blacklistToggleRect.Contains(Event.current.mousePosition))
+                    {
+                        bundle.FoldOutOpen = !bundle.FoldOutOpen;
+                        Event.current.Use();
+                    }
                 }
 
                 if (!bundle.FoldOutOpen)
                 {
+                    EditorGUI.indentLevel = originalIndentLevel; // Restore indent level
                     continue;
                 }
 
+                // Display bundle details
+                EditorGUI.indentLevel++;
                 EditorGUILayout.LabelField("Total Size", Utils.GetReadableFileSize(bundle.TotalSize), new GUIStyle(boldLabelStyle) { normal = { textColor = BundleDataColor } });
                 EditorGUILayout.LabelField("Previous Total Size", Utils.GetReadableFileSize(bundle.LastBuildSize), new GUIStyle(boldLabelStyle) { normal = { textColor = BundleDataColor } });
                 EditorGUILayout.LabelField("Built Bundle Size", Utils.GetReadableFileSize(bundle.BuiltBundleSize), new GUIStyle(boldLabelStyle) { normal = { textColor = BundleDataColor } });
 
-                EditorGUI.indentLevel++;
-                Rect assetFoldoutRect = GUILayoutUtility.GetRect(20f, 25f, GUILayout.ExpandWidth(true));
-                bundle.AssetsFoldOut = EditorGUI.Foldout(assetFoldoutRect, bundle.AssetsFoldOut, "Assets in Bundle", true, assetFoldoutStyle);
-
-                if (Event.current.type == EventType.MouseDown && assetFoldoutRect.Contains(Event.current.mousePosition))
-                {
-                    bundle.AssetsFoldOut = !bundle.AssetsFoldOut;
-                    Event.current.Use();
-                }
+                bundle.AssetsFoldOut = EditorGUILayout.Foldout(bundle.AssetsFoldOut, "Assets in Bundle", true, assetFoldoutStyle);
 
                 if (bundle.AssetsFoldOut)
                 {
@@ -265,25 +296,24 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
                         Texture2D icon = AssetDatabase.GetCachedIcon(asset.Path) as Texture2D;
                         if (icon != null)
                         {
-                            GUILayout.Label(icon, GUILayout.Width(24), GUILayout.Height(24), GUILayout.ExpandWidth(false)); // Adjust icon size and positioning
+                            GUILayout.Label(icon, GUILayout.Width(24), GUILayout.Height(24), GUILayout.ExpandWidth(false));
                         }
                         EditorGUILayout.LabelField(Path.GetFileName(asset.Path), new GUIStyle(EditorStyles.label) { normal = { textColor = AssetColor } }, GUILayout.ExpandWidth(true));
-                        Rect lastRect = GUILayoutUtility.GetLastRect();
+                        Rect assetRect = GUILayoutUtility.GetLastRect();
                         EditorGUILayout.LabelField(Utils.GetReadableFileSize(asset.Size), new GUIStyle(EditorStyles.label) { normal = { textColor = AssetColor } }, GUILayout.Width(150), GUILayout.ExpandWidth(false));
                         EditorGUILayout.EndHorizontal();
 
-                        EditorGUIUtility.AddCursorRect(lastRect, MouseCursor.Link); // Change cursor to link cursor
+                        EditorGUIUtility.AddCursorRect(assetRect, MouseCursor.Link);
 
-                        if (Event.current.type == EventType.MouseDown && lastRect.Contains(Event.current.mousePosition) && Event.current.clickCount == 2)
+                        if (Event.current.type == EventType.MouseDown && assetRect.Contains(Event.current.mousePosition) && Event.current.clickCount == 2)
                         {
-                            // Ping the asset when double clicked
                             var assetObject = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(asset.Path);
                             EditorGUIUtility.PingObject(assetObject);
                             Event.current.Use();
                         }
                     }
                 }
-                EditorGUI.indentLevel--;
+                EditorGUI.indentLevel = originalIndentLevel; // Restore indent level
             }
 
             EditorGUILayout.EndScrollView();
