@@ -1,4 +1,13 @@
-# 1.2.1
+# 1.3.0
+
+- Added colour settings.
+- Added UI Scale Factor.
+- Improved the images inside the "Assets in Bundle".
+- Changed the location of the build and blacklist buttons.
+- Made build and blacklist buttons mutually exclusive.
+- Fixed some indentation with the images inside "Assets in Bundle".
+
+## 1.2.1
 
 - Added compat with normal asset bundle builder in the filepath selection.
 
