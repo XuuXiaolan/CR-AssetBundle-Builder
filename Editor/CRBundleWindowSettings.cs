@@ -12,6 +12,8 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
         public bool processDependenciesRecursively = false;
         public SortOption assetSortOption = SortOption.Size;
 
+        public float scaleFactor = 1.1f; // Added scaleFactor
+
         public void Save()
         {
             Save(true);

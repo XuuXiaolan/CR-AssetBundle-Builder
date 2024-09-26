@@ -89,6 +89,7 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
             settings.buildOnlyChanged = EditorPrefs.GetBool("build_changed", settings.buildOnlyChanged);
             settings.assetSortOption = (SortOption)EditorPrefs.GetInt("asset_sort_option", (int)settings.assetSortOption);
             settings.processDependenciesRecursively = EditorPrefs.GetBool("process_dependencies_recursively", settings.processDependenciesRecursively);
+            settings.scaleFactor = EditorPrefs.GetFloat("ui_scale_factor", settings.scaleFactor);
         }
 
         private static void SaveBuildOutputPath(string path)
@@ -122,12 +123,16 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
 
         private void OnGUI()
         {
-            Color FolderColor = new Color(0.8f, 0.8f, 1f, 1f);
-            Color BundleDataColor = new Color(0.8f, 1f, 0.8f, 1f);
-            Color AssetColor = new Color(1f, 0.8f, 0.8f, 1f);
+            var settings = CRBundleWindowSettings.Instance;
 
-            // Scale factor to increase sizes
-            float scaleFactor = 1.1f;
+            // Scale factor from settings
+            float scaleFactor = settings.scaleFactor;
+
+            // Adjust the styles and layout sizes using the updated scaleFactor
+            Color FolderColor = new Color(0.8f, 0.8f, 1f, 1f);
+            Color BundleDataColor = new Color(0.0f, 0.9f, 0.0f, 1f); // Slightly lighter green
+            Color AssetColor = new Color(1f, 0.8f, 0.8f, 1f);
+            Color DarkGreyColor = new Color(0.5f, 0.5f, 0.5f, 1f); // Slightly lighter dark grey
 
             GUIStyle headerStyle = new GUIStyle(GUI.skin.label)
             {
@@ -152,7 +157,9 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
                 Refresh();
             }
 
-            var settings = CRBundleWindowSettings.Instance;
+            // Add UI to adjust scaleFactor
+            settings.scaleFactor = EditorGUILayout.Slider("UI Scale Factor", settings.scaleFactor, 0.5f, 2.0f);
+            EditorPrefs.SetFloat("ui_scale_factor", settings.scaleFactor);
 
             settings.assetSortOption = (SortOption)EditorGUILayout.EnumPopup("Sort Assets By:", settings.assetSortOption, GUILayout.Height(20 * scaleFactor));
             EditorPrefs.SetInt("asset_sort_option", (int)settings.assetSortOption);
@@ -178,46 +185,52 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
                 // Define constants for widths and spacing
                 float foldoutWidth = 15f * scaleFactor;
                 float iconWidth = 20f * scaleFactor;
-                float toggleWidth = 80f * scaleFactor;
                 float spacing = 5f * scaleFactor;
                 float lineHeight = (EditorGUIUtility.singleLineHeight + 5f) * scaleFactor;
 
                 // Get the rect for the entire line
                 Rect lastRect = GUILayoutUtility.GetRect(0, lineHeight);
 
-                // Calculate the total width available for label and toggles
-                float totalWidth = lastRect.width;
-
                 // Calculate positions for each element
 
                 // Foldout Rect
-                Rect foldoutRect = new Rect(lastRect.x + 5f, lastRect.y + 2f, foldoutWidth, lastRect.height);
+                Rect foldoutRect = new Rect(lastRect.x + 5f, lastRect.y + 2f * scaleFactor, foldoutWidth, lastRect.height);
 
                 // Icon Rect
-                Rect iconRect = new Rect(foldoutRect.xMax + spacing, lastRect.y + 2f, iconWidth, lastRect.height);
+                Rect iconRect = new Rect(foldoutRect.xMax + spacing, lastRect.y + 2f * scaleFactor, iconWidth, lastRect.height);
 
-                // Available width after foldout and icon
-                float remainingWidth = totalWidth - (foldoutWidth + iconWidth + toggleWidth * 2 + spacing * 5);
+                // We will calculate the widths of the toggles dynamically
+                GUIStyle toggleStyle = EditorStyles.toggle;
 
-                // Label Rect - occupy the remaining space minus the toggles
+                // Calculate toggle widths
+                float buildToggleWidth = toggleStyle.CalcSize(new GUIContent("Build")).x + toggleStyle.padding.horizontal;
+                float blacklistToggleWidth = toggleStyle.CalcSize(new GUIContent("Blacklist")).x + toggleStyle.padding.horizontal;
+
+                // Total toggle width including spacing
+                float togglesTotalWidth = buildToggleWidth + blacklistToggleWidth + spacing * 2;
+
+                // Available width for label
+                float remainingWidth = lastRect.width - (foldoutWidth + iconWidth + togglesTotalWidth + spacing * 4);
+
+                // Label Rect
                 Rect labelRect = new Rect(
                     iconRect.xMax + spacing,
-                    lastRect.y + 2f,
+                    lastRect.y + 2f * scaleFactor,
                     remainingWidth,
                     lastRect.height);
 
                 // Build Toggle Rect - position it at the right end
                 Rect buildToggleRect = new Rect(
-                    labelRect.xMax + spacing,
-                    lastRect.y + 2f,
-                    toggleWidth,
+                    lastRect.xMax - togglesTotalWidth + spacing, // position from the right
+                    lastRect.y + 2f * scaleFactor,
+                    buildToggleWidth,
                     lastRect.height);
 
                 // Blacklist Toggle Rect - position to the right of Build Toggle
                 Rect blacklistToggleRect = new Rect(
-                    buildToggleRect.xMax + spacing,
-                    lastRect.y + 2f,
-                    toggleWidth,
+                    buildToggleRect.x + buildToggleWidth + spacing,
+                    lastRect.y + 2f * scaleFactor,
+                    blacklistToggleWidth,
                     lastRect.height);
 
                 // Draw the foldout
@@ -283,29 +296,93 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
 
                 // Display bundle details
                 EditorGUI.indentLevel++;
-                EditorGUILayout.LabelField("Total Size", Utils.GetReadableFileSize(bundle.TotalSize), new GUIStyle(boldLabelStyle) { normal = { textColor = BundleDataColor } });
-                EditorGUILayout.LabelField("Previous Total Size", Utils.GetReadableFileSize(bundle.LastBuildSize), new GUIStyle(boldLabelStyle) { normal = { textColor = BundleDataColor } });
-                EditorGUILayout.LabelField("Built Bundle Size", Utils.GetReadableFileSize(bundle.BuiltBundleSize), new GUIStyle(boldLabelStyle) { normal = { textColor = BundleDataColor } });
 
-                bundle.AssetsFoldOut = EditorGUILayout.Foldout(bundle.AssetsFoldOut, "Assets in Bundle", true, assetFoldoutStyle);
+                // Create styles for labels and values
+                GUIStyle sizeLabelStyle = new GUIStyle(EditorStyles.label)
+                {
+                    fontSize = Mathf.RoundToInt(12 * scaleFactor),
+                    fontStyle = FontStyle.Bold,
+                    normal = { textColor = DarkGreyColor } // Slightly lighter dark grey
+                };
+
+                GUIStyle sizeValueStyle = new GUIStyle(EditorStyles.label)
+                {
+                    fontSize = Mathf.RoundToInt(12 * scaleFactor),
+                    fontStyle = FontStyle.Bold,
+                    normal = { textColor = BundleDataColor } // Slightly lighter green
+                };
+
+                // Use BeginHorizontal to apply the styles
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField("Total Size", sizeLabelStyle, GUILayout.Width(150 * scaleFactor));
+                EditorGUILayout.LabelField(Utils.GetReadableFileSize(bundle.TotalSize), sizeValueStyle);
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField("Previous Total Size", sizeLabelStyle, GUILayout.Width(150 * scaleFactor));
+                EditorGUILayout.LabelField(Utils.GetReadableFileSize(bundle.LastBuildSize), sizeValueStyle);
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField("Built Bundle Size", sizeLabelStyle, GUILayout.Width(150 * scaleFactor));
+                EditorGUILayout.LabelField(Utils.GetReadableFileSize(bundle.BuiltBundleSize), sizeValueStyle);
+                EditorGUILayout.EndHorizontal();
+
+                // Adjusted the foldout to use EditorGUI.Foldout to scale font size
+                Rect assetsFoldoutRect = GUILayoutUtility.GetRect(new GUIContent("Assets in Bundle"), assetFoldoutStyle);
+                bundle.AssetsFoldOut = EditorGUI.Foldout(assetsFoldoutRect, bundle.AssetsFoldOut, "Assets in Bundle", true, assetFoldoutStyle);
 
                 if (bundle.AssetsFoldOut)
                 {
+                    EditorGUI.indentLevel++; // Increase indent for assets
+
                     SortAssets(bundle.Assets);
+
+                    // Temporarily reset indent level to prevent unintended indentation
+                    int assetIndentLevel = EditorGUI.indentLevel;
+                    EditorGUI.indentLevel = 0;
 
                     foreach (var asset in bundle.Assets)
                     {
                         EditorGUILayout.BeginHorizontal();
-                        Texture2D icon = AssetDatabase.GetCachedIcon(asset.Path) as Texture2D;
+
+                        // Apply indentation manually
+                        GUILayout.Space(assetIndentLevel * 15f * scaleFactor);
+
+                        // Get the icon
+                        Texture2D icon = AssetPreview.GetAssetPreview(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(asset.Path));
+                        if (icon == null)
+                        {
+                            icon = AssetPreview.GetMiniThumbnail(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(asset.Path));
+                        }
+
                         if (icon != null)
                         {
                             GUILayout.Label(icon, GUILayout.Width(24f * scaleFactor), GUILayout.Height(24f * scaleFactor), GUILayout.ExpandWidth(false));
                         }
-                        EditorGUILayout.LabelField(Path.GetFileName(asset.Path), new GUIStyle(EditorStyles.label) { fontSize = Mathf.RoundToInt(12 * scaleFactor), normal = { textColor = AssetColor } }, GUILayout.ExpandWidth(true));
-                        Rect assetRect = GUILayoutUtility.GetLastRect();
-                        EditorGUILayout.LabelField(Utils.GetReadableFileSize(asset.Size), new GUIStyle(EditorStyles.label) { fontSize = Mathf.RoundToInt(12 * scaleFactor), normal = { textColor = AssetColor } }, GUILayout.Width(150f * scaleFactor), GUILayout.ExpandWidth(false));
+                        else
+                        {
+                            // If no icon, add space to align names
+                            GUILayout.Space(24f * scaleFactor);
+                        }
+
+                        // Asset name
+                        EditorGUILayout.LabelField(Path.GetFileName(asset.Path), new GUIStyle(EditorStyles.label)
+                        {
+                            fontSize = Mathf.RoundToInt(12 * scaleFactor),
+                            normal = { textColor = AssetColor }
+                        }, GUILayout.ExpandWidth(true)); // Remove any width constraints
+
+                        // Asset size
+                        EditorGUILayout.LabelField(Utils.GetReadableFileSize(asset.Size), new GUIStyle(EditorStyles.label)
+                        {
+                            fontSize = Mathf.RoundToInt(12 * scaleFactor),
+                            normal = { textColor = AssetColor }
+                        }, GUILayout.Width(80f * scaleFactor), GUILayout.ExpandWidth(false));
+
                         EditorGUILayout.EndHorizontal();
 
+                        Rect assetRect = GUILayoutUtility.GetLastRect();
                         EditorGUIUtility.AddCursorRect(assetRect, MouseCursor.Link);
 
                         if (Event.current.type == EventType.MouseDown && assetRect.Contains(Event.current.mousePosition) && Event.current.clickCount == 2)
@@ -315,6 +392,11 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
                             Event.current.Use();
                         }
                     }
+
+                    // Restore indent level
+                    EditorGUI.indentLevel = assetIndentLevel;
+
+                    EditorGUI.indentLevel--; // Decrease indent after assets
                 }
                 EditorGUI.indentLevel = originalIndentLevel; // Restore indent level
             }
