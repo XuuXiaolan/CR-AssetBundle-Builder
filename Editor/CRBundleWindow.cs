@@ -172,9 +172,50 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
                 Rect iconRect = new Rect(foldoutRect.x + 15, foldoutRect.y + 3, 20, 20); // Lower the icon positioning
                 GUI.DrawTexture(iconRect, bundleIcon);
 
-                // Drawing the label next to the icon
-                Rect labelRect = new Rect(iconRect.xMax + 5, foldoutRect.y, foldoutRect.width - iconRect.width, foldoutRect.height);
+                // Define constants for toggle widths and spacing
+                float toggleWidth = 80f;
+                float spacing = 5f;
+
+                // Define positions for toggles at the right side
+                Rect BlacklistToggleRect = new Rect(
+                    foldoutRect.xMax - toggleWidth,
+                    foldoutRect.y + 2f,
+                    toggleWidth,
+                    foldoutRect.height - 4f
+                );
+
+                Rect BuildToggleRect = new Rect(
+                BlacklistToggleRect.x - toggleWidth - spacing,
+                foldoutRect.y + 2f,
+                toggleWidth,
+                foldoutRect.height - 4f);
+
+                // Adjust labelRect to fit between icon and toggles
+                Rect labelRect = new Rect(
+                    iconRect.xMax + 5,
+                    foldoutRect.y,
+                    BuildToggleRect.x - spacing - (iconRect.xMax + 5),
+                    foldoutRect.height);
+
                 EditorGUI.LabelField(labelRect, $"{prefix}{bundle.DisplayName}", new GUIStyle(headerStyle) { normal = { textColor = FolderColor } });
+
+                // Draw the Blacklist toggle
+                bool blacklisted = bundle.Blacklisted;
+                blacklisted = EditorGUI.ToggleLeft(BlacklistToggleRect, "Blacklist", blacklisted);
+                if (blacklisted != bundle.Blacklisted)
+                {
+                    bundle.Blacklisted = blacklisted;
+                    EditorPrefs.SetBool($"{bundle.BundleName}_blacklisted", blacklisted);
+                }
+
+                // Draw the Build toggle
+                bool build = bundle.Build;
+                build = EditorGUI.ToggleLeft(BuildToggleRect, "Build", build);
+                if (build != bundle.Build)
+                {
+                    bundle.Build = build;
+                    EditorPrefs.SetBool($"{bundle.BundleName}_build", build);
+                }
 
                 if (Event.current.type == EventType.MouseDown && foldoutRect.Contains(Event.current.mousePosition))
                 {
@@ -190,22 +231,6 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
                 EditorGUILayout.LabelField("Total Size", Utils.GetReadableFileSize(bundle.TotalSize), new GUIStyle(boldLabelStyle) { normal = { textColor = BundleDataColor } });
                 EditorGUILayout.LabelField("Previous Total Size", Utils.GetReadableFileSize(bundle.LastBuildSize), new GUIStyle(boldLabelStyle) { normal = { textColor = BundleDataColor } });
                 EditorGUILayout.LabelField("Built Bundle Size", Utils.GetReadableFileSize(bundle.BuiltBundleSize), new GUIStyle(boldLabelStyle) { normal = { textColor = BundleDataColor } });
-
-                bool build = bundle.Build;
-                build = EditorGUILayout.Toggle("Build", build);
-                if (build != bundle.Build)
-                {
-                    bundle.Build = build;
-                    EditorPrefs.SetBool($"{bundle.BundleName}_build", build);
-                }
-
-                bool blacklisted = bundle.Blacklisted;
-                blacklisted = EditorGUILayout.Toggle("Blacklist", blacklisted);
-                if (blacklisted != bundle.Blacklisted)
-                {
-                    bundle.Blacklisted = blacklisted;
-                    EditorPrefs.SetBool($"{bundle.BundleName}_blacklisted", blacklisted);
-                }
 
                 EditorGUI.indentLevel++;
                 Rect assetFoldoutRect = GUILayoutUtility.GetRect(20f, 25f, GUILayout.ExpandWidth(true));
