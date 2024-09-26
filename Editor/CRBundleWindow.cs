@@ -174,7 +174,6 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
 
                 // Define constants for toggle widths and spacing
                 float toggleWidth = 80f;
-                float spacing = 5f;
 
                 // Define positions for toggles at the right side
                 Rect BlacklistToggleRect = new Rect(
@@ -185,36 +184,50 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
                 );
 
                 Rect BuildToggleRect = new Rect(
-                BlacklistToggleRect.x - toggleWidth - spacing,
-                foldoutRect.y + 2f,
-                toggleWidth,
-                foldoutRect.height - 4f);
+                    BlacklistToggleRect.x - toggleWidth,
+                    foldoutRect.y + 2f,
+                    toggleWidth,
+                    foldoutRect.height - 4f);
 
                 // Adjust labelRect to fit between icon and toggles
                 Rect labelRect = new Rect(
                     iconRect.xMax + 5,
                     foldoutRect.y,
-                    BuildToggleRect.x - spacing - (iconRect.xMax + 5),
+                    BuildToggleRect.x - (iconRect.xMax + 5),
                     foldoutRect.height);
 
                 EditorGUI.LabelField(labelRect, $"{prefix}{bundle.DisplayName}", new GUIStyle(headerStyle) { normal = { textColor = FolderColor } });
 
                 // Draw the Blacklist toggle
                 bool blacklisted = bundle.Blacklisted;
-                blacklisted = EditorGUI.ToggleLeft(BlacklistToggleRect, "Blacklist", blacklisted);
-                if (blacklisted != bundle.Blacklisted)
+                bool newBlacklisted = EditorGUI.ToggleLeft(BlacklistToggleRect, "Blacklist", blacklisted);
+                if (newBlacklisted != blacklisted)
                 {
-                    bundle.Blacklisted = blacklisted;
-                    EditorPrefs.SetBool($"{bundle.BundleName}_blacklisted", blacklisted);
+                    bundle.Blacklisted = newBlacklisted;
+                    EditorPrefs.SetBool($"{bundle.BundleName}_blacklisted", newBlacklisted);
+
+                    if (newBlacklisted)
+                    {
+                        // Untoggle Build
+                        bundle.Build = false;
+                        EditorPrefs.SetBool($"{bundle.BundleName}_build", false);
+                    }
                 }
 
                 // Draw the Build toggle
                 bool build = bundle.Build;
-                build = EditorGUI.ToggleLeft(BuildToggleRect, "Build", build);
-                if (build != bundle.Build)
+                bool newBuild = EditorGUI.ToggleLeft(BuildToggleRect, "Build", build);
+                if (newBuild != build)
                 {
-                    bundle.Build = build;
-                    EditorPrefs.SetBool($"{bundle.BundleName}_build", build);
+                    bundle.Build = newBuild;
+                    EditorPrefs.SetBool($"{bundle.BundleName}_build", newBuild);
+
+                    if (newBuild)
+                    {
+                        // Untoggle Blacklist
+                        bundle.Blacklisted = false;
+                        EditorPrefs.SetBool($"{bundle.BundleName}_blacklisted", false);
+                    }
                 }
 
                 if (Event.current.type == EventType.MouseDown && foldoutRect.Contains(Event.current.mousePosition))
@@ -288,6 +301,10 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
                     {
                         bundle.Build = true;
                         EditorPrefs.SetBool($"{bundle.BundleName}_build", true);
+
+                        // Ensure Blacklist is untoggled
+                        bundle.Blacklisted = false;
+                        EditorPrefs.SetBool($"{bundle.BundleName}_blacklisted", false);
                     }
                 }
             }
