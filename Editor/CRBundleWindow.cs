@@ -23,6 +23,9 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
 
         private Vector2 scrollPosition;
 
+        // Added variable to control the foldout state of color settings
+        private bool showColorSettings = false;
+
         private void OnEnable()
         {
             Debug.Log("OnEnable called");
@@ -90,6 +93,26 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
             settings.assetSortOption = (SortOption)EditorPrefs.GetInt("asset_sort_option", (int)settings.assetSortOption);
             settings.processDependenciesRecursively = EditorPrefs.GetBool("process_dependencies_recursively", settings.processDependenciesRecursively);
             settings.scaleFactor = EditorPrefs.GetFloat("ui_scale_factor", settings.scaleFactor);
+
+            // Load color settings
+            settings.folderColor = LoadColor("folder_color", new Color(0.8f, 0.8f, 1f, 1f));
+            settings.bundleLabelColor = LoadColor("bundle_label_color", new Color(0.5f, 0.5f, 0.5f, 1f));
+            settings.bundleValueColor = LoadColor("bundle_value_color", new Color(0.0f, 1.0f, 0.0f, 1f));
+            settings.assetNameColor = LoadColor("asset_name_color", new Color(1f, 0.8f, 0.8f, 1f));
+            settings.assetSizeColor = LoadColor("asset_size_color", new Color(1f, 0.8f, 0.8f, 1f));
+        }
+
+        private static Color LoadColor(string key, Color defaultColor)
+        {
+            string colorString = EditorPrefs.GetString(key, ColorUtility.ToHtmlStringRGBA(defaultColor));
+            ColorUtility.TryParseHtmlString("#" + colorString, out Color color);
+            return color;
+        }
+
+        private static void SaveColor(string key, Color color)
+        {
+            string colorString = ColorUtility.ToHtmlStringRGBA(color);
+            EditorPrefs.SetString(key, colorString);
         }
 
         private static void SaveBuildOutputPath(string path)
@@ -129,10 +152,11 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
             float scaleFactor = settings.scaleFactor;
 
             // Adjust the styles and layout sizes using the updated scaleFactor
-            Color FolderColor = new Color(0.8f, 0.8f, 1f, 1f);
-            Color BundleDataColor = new Color(0.0f, 0.9f, 0.0f, 1f); // Slightly lighter green
-            Color AssetColor = new Color(1f, 0.8f, 0.8f, 1f);
-            Color DarkGreyColor = new Color(0.5f, 0.5f, 0.5f, 1f); // Slightly lighter dark grey
+            Color FolderColor = settings.folderColor;
+            Color BundleDataColor = settings.bundleValueColor; // Lighter green from settings
+            Color AssetColor = settings.assetNameColor;
+            Color AssetSizeColor = settings.assetSizeColor;
+            Color DarkGreyColor = settings.bundleLabelColor; // Slightly lighter dark grey from settings
 
             GUIStyle headerStyle = new GUIStyle(GUI.skin.label)
             {
@@ -166,6 +190,38 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
 
             settings.processDependenciesRecursively = EditorGUILayout.Toggle("Process Dependencies Recursively", settings.processDependenciesRecursively, GUILayout.Height(20 * scaleFactor));
             EditorPrefs.SetBool("process_dependencies_recursively", settings.processDependenciesRecursively);
+
+            // Add UI to customize colors within a foldout
+            EditorGUILayout.Space();
+
+            // Adjust the foldout to prevent clipping
+            GUIStyle foldoutStyle = new GUIStyle(EditorStyles.foldout)
+            {
+                fontStyle = FontStyle.Bold,
+                fontSize = Mathf.RoundToInt(14 * scaleFactor)
+            };
+
+            showColorSettings = EditorGUILayout.Foldout(showColorSettings, "Color Settings", true, foldoutStyle);
+
+            if (showColorSettings)
+            {
+                EditorGUI.indentLevel++;
+
+                settings.folderColor = EditorGUILayout.ColorField("Bundle Name Color", settings.folderColor);
+                settings.bundleLabelColor = EditorGUILayout.ColorField("Bundle Label Color", settings.bundleLabelColor);
+                settings.bundleValueColor = EditorGUILayout.ColorField("Bundle Value Color", settings.bundleValueColor);
+                settings.assetNameColor = EditorGUILayout.ColorField("Asset Name Color", settings.assetNameColor);
+                settings.assetSizeColor = EditorGUILayout.ColorField("Asset Size Color", settings.assetSizeColor);
+
+                // Save color settings
+                SaveColor("folder_color", settings.folderColor);
+                SaveColor("bundle_label_color", settings.bundleLabelColor);
+                SaveColor("bundle_value_color", settings.bundleValueColor);
+                SaveColor("asset_name_color", settings.assetNameColor);
+                SaveColor("asset_size_color", settings.assetSizeColor);
+
+                EditorGUI.indentLevel--;
+            }
 
             settings.Save();
 
@@ -302,14 +358,14 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
                 {
                     fontSize = Mathf.RoundToInt(12 * scaleFactor),
                     fontStyle = FontStyle.Bold,
-                    normal = { textColor = DarkGreyColor } // Slightly lighter dark grey
+                    normal = { textColor = DarkGreyColor } // Label color from settings
                 };
 
                 GUIStyle sizeValueStyle = new GUIStyle(EditorStyles.label)
                 {
                     fontSize = Mathf.RoundToInt(12 * scaleFactor),
                     fontStyle = FontStyle.Bold,
-                    normal = { textColor = BundleDataColor } // Slightly lighter green
+                    normal = { textColor = BundleDataColor } // Value color from settings
                 };
 
                 // Use BeginHorizontal to apply the styles
@@ -370,14 +426,14 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
                         EditorGUILayout.LabelField(Path.GetFileName(asset.Path), new GUIStyle(EditorStyles.label)
                         {
                             fontSize = Mathf.RoundToInt(12 * scaleFactor),
-                            normal = { textColor = AssetColor }
-                        }, GUILayout.ExpandWidth(true)); // Remove any width constraints
+                            normal = { textColor = AssetColor } // Asset name color from settings
+                        }, GUILayout.ExpandWidth(true));
 
                         // Asset size
                         EditorGUILayout.LabelField(Utils.GetReadableFileSize(asset.Size), new GUIStyle(EditorStyles.label)
                         {
                             fontSize = Mathf.RoundToInt(12 * scaleFactor),
-                            normal = { textColor = AssetColor }
+                            normal = { textColor = AssetSizeColor } // Asset size color from settings
                         }, GUILayout.Width(80f * scaleFactor), GUILayout.ExpandWidth(false));
 
                         EditorGUILayout.EndHorizontal();
