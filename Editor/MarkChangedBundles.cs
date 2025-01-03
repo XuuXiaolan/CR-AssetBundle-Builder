@@ -31,6 +31,12 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
 
         private static void MarkBundleAsChanged(string assetPath)
         {
+            if (!AssetExists(assetPath))
+            {
+                return;
+            }
+
+            // If it's a real path, see if there's an implicit AssetBundle name assigned.
             string bundleName = AssetDatabase.GetImplicitAssetBundleName(assetPath);
             if (!string.IsNullOrEmpty(bundleName))
             {
@@ -39,6 +45,19 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
                     bundleSettings.ChangedSinceLastBuild = true;
                 }
             }
+        }
+
+        private static bool AssetExists(string assetPath)
+        {
+            // 1) Check if it’s a valid folder:
+            if (AssetDatabase.IsValidFolder(assetPath))
+            {
+                return true;
+            }
+
+            // 2) Check if it’s a valid asset:
+            UnityEngine.Object obj = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(assetPath);
+            return obj != null;
         }
     }
 }
