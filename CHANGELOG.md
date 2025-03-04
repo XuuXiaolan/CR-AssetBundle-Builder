@@ -1,4 +1,9 @@
-# 1.3.0
+# 1.4.0
+
+- Added a Scene listener that will update bundles when scenes with bundle data are changed.
+- Made it so double clicking an asset in the assets section tells you how its included into a bundle.
+
+## 1.3.0
 
 - Added colour settings.
 - Added UI Scale Factor.

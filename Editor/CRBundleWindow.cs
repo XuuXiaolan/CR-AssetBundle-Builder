@@ -406,19 +406,13 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
                         GUILayout.Space(assetIndentLevel * 15f * scaleFactor);
 
                         // Get the icon
-                        Texture2D icon = AssetPreview.GetAssetPreview(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(asset.Path));
-                        if (icon == null)
-                        {
-                            icon = AssetPreview.GetMiniThumbnail(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(asset.Path));
-                        }
-
+                        Texture2D icon = AssetPreview.GetMiniThumbnail(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(asset.Path));
                         if (icon != null)
                         {
                             GUILayout.Label(icon, GUILayout.Width(24f * scaleFactor), GUILayout.Height(24f * scaleFactor), GUILayout.ExpandWidth(false));
                         }
                         else
                         {
-                            // If no icon, add space to align names
                             GUILayout.Space(24f * scaleFactor);
                         }
 
@@ -444,6 +438,36 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
                         if (Event.current.type == EventType.MouseDown && assetRect.Contains(Event.current.mousePosition) && Event.current.clickCount == 2)
                         {
                             var assetObject = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(asset.Path);
+                            // Check if the asset is a texture
+                            if (assetObject != null && AssetDatabase.GetMainAssetTypeAtPath(asset.Path) == typeof(Texture2D))
+                            {
+                                List<string> referencingAssets = new List<string>();
+                                // Iterate over all assets in the current bundle to find references
+                                foreach (var otherAsset in bundle.Assets)
+                                {
+                                    if (otherAsset.Path == asset.Path)
+                                        continue;
+
+                                    // Get all dependencies of the other asset
+                                    string[] dependencies = AssetDatabase.GetDependencies(otherAsset.Path, true);
+                                    if (dependencies.Contains(asset.Path))
+                                    {
+                                        referencingAssets.Add(otherAsset.Path);
+                                    }
+                                }
+
+                                if (referencingAssets.Count > 0)
+                                {
+                                    Debug.Log($"Texture '{asset.Path}' is referenced by the following assets in bundle '{bundle.BundleName}':\n" +
+                                            string.Join("\n", referencingAssets));
+                                }
+                                else
+                                {
+                                    Debug.Log($"No references to texture '{asset.Path}' were found in bundle '{bundle.BundleName}'.");
+                                }
+                            }
+
+                            // Optionally, still ping the object for visual feedback.
                             EditorGUIUtility.PingObject(assetObject);
                             Event.current.Use();
                         }
