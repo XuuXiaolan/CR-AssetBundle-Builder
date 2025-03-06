@@ -1,4 +1,9 @@
-# 1.4.0
+# 1.4.1
+
+- I accidently only let Texture2D's log what's changed.
+- Got rid of some unneeded Debug Logs.
+
+## 1.4.0
 
 - Added a Scene listener that will update bundles when scenes with bundle data are changed.
 - Made it so double clicking an asset in the assets section tells you how its included into a bundle.

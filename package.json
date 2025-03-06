@@ -1,6 +1,6 @@
 {
   "name": "com.github.xuuxiaolan.crassetbundlebuilder",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "displayName": "CR AssetBundle Builder",
   "description": "Tool to assist with building multiple bundles seamlessly.",
   "unity": "2022.3",

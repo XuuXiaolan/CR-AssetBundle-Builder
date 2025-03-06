@@ -21,10 +21,8 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
 
         private static void MarkBundleAsChanged(string assetPath)
         {
-            Debug.Log($"Marking {assetPath} as changed.");
             string bundleName = AssetDatabase.GetImplicitAssetBundleName(assetPath);
             string variantName = AssetDatabase.GetImplicitAssetBundleVariantName(assetPath);
-            Debug.Log($"{bundleName}");
             if (!string.IsNullOrEmpty(bundleName))
             {
                 if (!string.IsNullOrEmpty(variantName))

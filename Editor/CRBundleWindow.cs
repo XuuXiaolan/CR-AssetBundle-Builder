@@ -28,7 +28,6 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
 
         private void OnEnable()
         {
-            Debug.Log("OnEnable called");
             LoadSettings();
             CRBundleWindowSettings.Instance.Save();
             Refresh();
@@ -56,7 +55,6 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
 
         private static void LoadSettings()
         {
-            Debug.Log("LoadSettings called");
             var settings = CRBundleWindowSettings.Instance;
 
             if (string.IsNullOrEmpty(settings.buildOutputPath))
@@ -439,7 +437,7 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
                         {
                             var assetObject = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(asset.Path);
                             // Check if the asset is a texture
-                            if (assetObject != null && AssetDatabase.GetMainAssetTypeAtPath(asset.Path) == typeof(Texture2D))
+                            if (assetObject != null)
                             {
                                 List<string> referencingAssets = new List<string>();
                                 // Iterate over all assets in the current bundle to find references
