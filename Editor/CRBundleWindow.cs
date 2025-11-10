@@ -12,7 +12,8 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
     {
         static CRBundleWindow()
         {
-            OpenOnStartup();
+            // Open on startup gets super annoying
+            //OpenOnStartup();
         }
 
         internal static Dictionary<string, BundleBuildSettings> bundles = new Dictionary<string, BundleBuildSettings>();
@@ -33,7 +34,8 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
             Refresh();
         }
 
-        [MenuItem("Code Rebirth/Bundle Builder")]
+        [MenuItem("Tools/AssetBundle Builder")]
+        [MenuItem("Window/AssetBundle Builder")]
         public static void Open()
         {
             GetWindow<CRBundleWindow>("CR Bundle Builder");
@@ -185,9 +187,13 @@ namespace com.github.xuuxiaolan.crassetbundlebuilder
 
             settings.assetSortOption = (SortOption)EditorGUILayout.EnumPopup("Sort Assets By:", settings.assetSortOption, GUILayout.Height(20 * scaleFactor));
             EditorPrefs.SetInt("asset_sort_option", (int)settings.assetSortOption);
+            
+            EditorGUIUtility.labelWidth = 250;
 
-            settings.processDependenciesRecursively = EditorGUILayout.Toggle("Process Dependencies Recursively", settings.processDependenciesRecursively, GUILayout.Height(20 * scaleFactor));
+            settings.processDependenciesRecursively = EditorGUILayout.Toggle("Process Dependencies Recursively", settings.processDependenciesRecursively, GUILayout.ExpandWidth(true));
             EditorPrefs.SetBool("process_dependencies_recursively", settings.processDependenciesRecursively);
+
+            EditorGUIUtility.labelWidth = 150;
 
             // Add UI to customize colors within a foldout
             EditorGUILayout.Space();
